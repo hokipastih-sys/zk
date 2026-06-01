@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Deteksi Gerakan Tangan - Zakwan</title>
+  <div id="cc">Gerakan Terdeteksi: <span id="output-text">-</span></div>
+  <video id="input video" autoplay playsinline></video>
+  <canvas id="canvas" width="800" height="600"></canvas>
+</head>
+<body>
+  <!-- Load MediaPipe Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <!-- PERBAIKAN 1: Menambahkan Drawing Utils agar fungsi menggambar titik tidak error -->
+  <script src="https://jsdelivr.net" crossorigin="anonymous"></script>
+
+  <style>
+   body {
+     margin: 0;
+     display: flex;
+     justify-content: center;
+     align-items: center;
+     background-color: black;
+     color: white;
+     overflow: hidden;
+     font-family: Arial, sans-serif;
+   }
+   canvas {
+     border: 4px solid #02FF75;
+     border-radius: 15px;
+     transform: scaleX(-1); /* Efek cermin agar natural */
+   }
+   video { display: none; }
+   #cc {
+     position: absolute;
+     top: 22px;
+     text-align: center;
+     width: 100%;
+     font-size: 24px;
+     font-weight: bold;
+     background: rgba(0, 0, 0, 0.6);
+     padding: 10px 0;
+     z-index: 10;
+   }
+   #output-text {
+     color: #02FF75;
+   }
+  </style>
+
+  <script type="module">
+   const videoElement = document.getElementById('input video');
+   const canvasElement = document.getElementById('canvas');
+   const canvasCtx = canvasElement.getContext('2d');
+   const outputText = document.getElementById('output-text');
+
+   // Fungsi pembantu untuk menghitung jarak antara dua koordinat 3D
+   function getDistance(p1, p2) {
+     return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+   }
+
+   // Logika mendeteksi arti gerakan berdasarkan posisi jari
+   function recognizeGesture(landmarks) {
+     const thumbTip = landmarks[4];
+     const indexTip = landmarks[8];
+     const middleTip = landmarks[12];
+     const ringTip = landmarks[16];
+     const pinkyTip = landmarks[20];
+
+     // Cek apakah jari tegak berdiri ke atas (koordinat Y ujung jari lebih kecil dari sendi bawahnya)
+     const isIndexUp = indexTip.y < landmarks[6].y;
+     const isMiddleUp = middleTip.y < landmarks[10].y;
+     const isRingUp = ringTip.y < landmarks[14].y;
+     const isPinkyUp = pinkyTip.y < landmarks[18].y;
+
+     // PERBAIKAN 2: Sederhanakan deteksi jempol berdasarkan jarak ke telunjuk agar berlaku untuk tangan kanan & kiri
+     const isThumbOut = getDistance(thumbTip, landmarks[5]) > 0.05;
+
+     // 1. Gerakan "Halo" -> Semua 5 jari terbuka lebar tegak ke atas
+     if (isIndexUp && isMiddleUp && isRingUp && isPinkyUp && isThumbOut) {
+       return "Halo";
+     }
+
+     // 2. Gerakan "Nama Saya" -> Hanya jari Telunjuk & Tengah rapat ke atas (seperti huruf H)
+     if (isIndexUp && isMiddleUp && !isRingUp && !isPinkyUp) {
+       const fingerGap = getDistance(indexTip, middleTip);
+       if (fingerGap < 0.04) {
+         return "Nama Saya";
+       }
+     }
+
+     // 3. Gerakan "Zakwan" -> Telunjuk dan Tengah terbuka lebar (Simbol Peace / Huruf V)
+     if (isIndexUp && isMiddleUp && !isRingUp && !isPinkyUp) {
+       const fingerGap = getDistance(indexTip, middleTip);
+       if (fingerGap >= 0.04) {
+         return "Zakwan";
+       }
+     }
+
+     return "...";
+   }
+
+   function onResults(results) {
+     canvasCtx.save();
+     canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+     
+     // Gambar frame video ke canvas (Kamera normal)
+     canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+     // Jika tangan terdeteksi
+     if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+       for (const landmarks of results.multiHandLandmarks) {
+         
+         // PERBAIKAN 3: Menggunakan window.drawConnectors dan window.drawLandmarks agar terbaca global script
+         window.drawConnectors(canvasCtx, landmarks, window.HAND_CONNECTIONS, {color: '#00FF00', lineWidth: 4});
+         window.drawLandmarks(canvasCtx, landmarks, {color: '#FF0000', lineWidth: 1, radius: 3});
+
+         // Jalankan fungsi pembaca gerakan
+         const gesture = recognizeGesture(landmarks);
+         outputText.innerText = gesture;
+       }
+     } else {
+       outputText.innerText = "-";
+     }
+     canvasCtx.restore();
+   }
+
+   // Inisialisasi MediaPipe Hands
+   // PERBAIKAN 4: Memperbaiki string URL cdn jsdelivr yang rusak
+   const hands = new window.Hands({
+     locateFile: (file) => `https://jsdelivr.net{file}`
+   });
+
+   hands.setOptions({
+     maxNumHands: 1,
+     modelComplexity: 1,
+     minDetectionConfidence: 0.5,
+     minTrackingConfidence: 0.5
+   });
+
+   hands.onResults(onResults);
+
+   // Jalankan Kamera
+   const camera = new window.Camera(videoElement, {
+     onFrame: async () => {
+       await hands.send({image: videoElement});
+     },
+     width: 800,
+     height: 600
+   });
+   
+   camera.start();
+  </script>
+</body>
+</html>
