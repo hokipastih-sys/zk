@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR zakwan</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Segoe UI' sans-serif;
+            background-color:#FFF600;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background-color: #30F1FF;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        p {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        input[type="url"] {
+            width: 90%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        input[type="url"]:focus {
+            border-color: #007bff;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 15px;
+            width: 96%;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #qrcode-container {
+            margin-top: 25px;
+            display: flex;
+            justify-content: center;
+        }
+
+        #qrcode img {
+            border: 4px solid ;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>QR Code zakwan</h1>
+        <p>Masukkan tautan foto video atau website</p>
+        
+        <!-- Kolom input tautan -->
+        <input type="url" id="media-url" placeholder="https://example.com" required>
+        <button id="btn-generate">Buat QR Code</button>
+        
+        <!-- Wadah tempat QR Code akan muncul -->
+        <div id="qrcode-container">
+            <div id="qrcode"></div>
+        </div>
+    </div>
+
+    <script>
+        // Memastikan seluruh elemen HTML selesai dimuat sebelum menjalankan JavaScript
+        document.addEventListener("DOMContentLoaded", function () {
+            const generateBtn = document.getElementById("btn-generate");
+            const urlInput = document.getElementById("media-url");
+            const qrContainer = document.getElementById("qrcode");
+            
+            let qrcodeInstance = null;
+
+            generateBtn.addEventListener("click", function () {
+                const urlValue = urlInput.value.trim();
+
+                // Validasi input kosong
+                if (urlValue === "") {
+                    alert("Silakan masukkan tautan foto atau video terlebih dahulu!");
+                    return;
+                }
+
+                // Memastikan pustaka QRCode.js telah terunduh dari internet
+                if (typeof QRCode === "undefined") {
+                    alert("Gagal memuat sistem pembuat QR. Periksa koneksi internet Anda.");
+                    return;
+                }
+
+                // Bersihkan kode QR lama sebelum membuat yang baru
+                qrContainer.innerHTML = "";
+
+                // Membuat QR Code baru
+                qrcodeInstance = new QRCode(qrContainer, {
+                    text: urlValue,
+                    width: 200,
+                    height: 200,
+                    colorDark : "#000000",
+                    colorLight : "#ffffff",
+                    correctLevel : QRCode.CorrectLevel.H 
+                });
+            });
+        });
+    </script>
+</body>
+</html>
